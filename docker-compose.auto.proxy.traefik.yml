@@ -1,0 +1,170 @@
+version: '3'
+
+services:
+  traefik:
+    image: traefik:v2.5
+    container_name: traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.email=youremail@example.com"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+      # Optimizations
+      - "--providers.docker.network=arrstack"
+      - "--log.level=INFO"
+      - "--accesslog=true"
+      - "--api.dashboard=true"
+      - "--ping=true"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      - "--entrypoints.websecure.http.tls.certResolver=myresolver"
+      - "--entrypoints.websecure.http.tls.domains[0].main=yourdomain.com"
+      - "--entrypoints.websecure.http.tls.domains[0].sans=*.yourdomain.com"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /tank/docker/volumes/traefik/letsencrypt:/letsencrypt
+    networks:
+      - arrstack
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.yourdomain.com`)"
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.routers.traefik.tls.certresolver=myresolver"
+    restart: unless-stopped
+
+  jackett:
+    container_name: jackett
+    environment:
+      - PGID=1000
+      - PUID=1000
+      - TZ=America/Vancouver
+      - AUTO_UPDATE=true
+    image: linuxserver/jackett:latest
+    networks:
+      - arrstack
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jackett.rule=Host(`jackett.yourdomain.com`)"
+      - "traefik.http.routers.jackett.entrypoints=websecure"
+      - "traefik.http.routers.jackett.tls.certresolver=myresolver"
+      - "traefik.http.services.jackett.loadbalancer.server.port=9117"
+      - "traefik.http.routers.jackett.middlewares=secureHeaders@file"
+      - "com.centurylinklabs.watchtower.enable=true"
+    restart: unless-stopped
+    volumes:
+      - /tank/docker/volumes/jackett/config:/config
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9117"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  overseerr:
+    container_name: overseerr
+    environment:
+      - PGID=1000
+      - PUID=1000
+      - TZ=America/Vancouver
+      - LOG_LEVEL=info
+    image: linuxserver/overseerr:latest
+    networks:
+      - arrstack
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.overseerr.rule=Host(`overseerr.yourdomain.com`)"
+      - "traefik.http.routers.overseerr.entrypoints=websecure"
+      - "traefik.http.routers.overseerr.tls.certresolver=myresolver"
+      - "traefik.http.services.overseerr.loadbalancer.server.port=5055"
+      - "traefik.http.routers.overseerr.middlewares=secureHeaders@file"
+      - "com.centurylinklabs.watchtower.enable=true"
+    volumes:
+      - /tank/docker/volumes/overseerr/config:/config
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5055"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  radarr:
+    container_name: radarr
+    environment:
+      - PGID=1000
+      - PUID=1000
+      - TZ=America/Vancouver
+    image: linuxserver/radarr:latest
+    networks:
+      - arrstack
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.radarr.rule=Host(`radarr.yourdomain.com`)"
+      - "traefik.http.routers.radarr.entrypoints=websecure"
+      - "traefik.http.routers.radarr.tls.certresolver=myresolver"
+      - "traefik.http.services.radarr.loadbalancer.server.port=7878"
+      - "traefik.http.routers.radarr.middlewares=secureHeaders@file"
+      - "com.centurylinklabs.watchtower.enable=true"
+    restart: unless-stopped
+    volumes:
+      - /tank/docker/volumes/radarr/config:/config
+      - /tank/public:/tank/public
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7878/api/v3/system/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  sonarr:
+    container_name: sonarr
+    environment:
+      - PGID=1000
+      - PUID=1000
+      - TZ=America/Vancouver
+    image: linuxserver/sonarr:latest
+    networks:
+      - arrstack
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sonarr.rule=Host(`sonarr.yourdomain.com`)"
+      - "traefik.http.routers.sonarr.entrypoints=websecure"
+      - "traefik.http.routers.sonarr.tls.certresolver=myresolver"
+      - "traefik.http.services.sonarr.loadbalancer.server.port=8989"
+      - "traefik.http.routers.sonarr.middlewares=secureHeaders@file"
+      - "com.centurylinklabs.watchtower.enable=true"
+    restart: unless-stopped
+    volumes:
+      - /tank/docker/volumes/sonarr/config:/config
+      - /tank/public:/tank/public
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8989/api/v3/system/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  arrstack:
+    external: true

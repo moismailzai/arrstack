@@ -1,0 +1,109 @@
+version: '3'
+services:
+  jackett:
+    container_name: jackett
+    environment:
+      - PGID=1000
+      - PUID=1000
+      - TZ=America/Vancouver
+      - AUTO_UPDATE=true
+    image: linuxserver/jackett:latest
+    networks:
+      - arrstack
+    restart: unless-stopped
+    volumes:
+      - /tank/docker/volumes/jackett/config:/config
+    ports:
+      - "9117:9117"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9117"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+  overseerr:
+    container_name: overseerr
+    environment:
+      - PGID=1000
+      - PUID=1000
+      - TZ=America/Vancouver
+      - LOG_LEVEL=info
+    image: linuxserver/overseerr:latest
+    networks:
+      - arrstack
+    volumes:
+      - /tank/docker/volumes/overseerr/config:/config
+    restart: unless-stopped
+    ports:
+      - "5055:5055"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5055"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+  radarr:
+    container_name: radarr
+    environment:
+      - PGID=1000
+      - PUID=1000
+      - TZ=America/Vancouver
+    image: linuxserver/radarr:latest
+    networks:
+      - arrstack
+    restart: unless-stopped
+    volumes:
+      - /tank/docker/volumes/radarr/config:/config
+      - /tank/public:/tank/public
+    ports:
+      - "7878:7878"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7878/api/v3/system/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+  sonarr:
+    container_name: sonarr
+    environment:
+      - PGID=1000
+      - PUID=1000
+      - TZ=America/Vancouver
+    image: linuxserver/sonarr:latest
+    networks:
+      - arrstack
+    restart: unless-stopped
+    volumes:
+      - /tank/docker/volumes/sonarr/config:/config
+      - /tank/public:/tank/public
+    ports:
+      - "8989:8989"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8989/api/v3/system/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+networks:
+  arrstack:
+    external: true
