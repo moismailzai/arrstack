@@ -104,3 +104,22 @@ After setting up either configuration, you can access your services at:
 - https://sonarr.yourdomain.com
 
 Remember to replace 'yourdomain.com' with your actual domain name.
+
+## Local Directory Setup
+
+Before running either configuration, ensure that the following directories exist on your local machine:
+
+1. `/tank/docker/volumes/jackett/config`
+2. `/tank/docker/volumes/overseerr/config`
+3. `/tank/docker/volumes/radarr/config`
+4. `/tank/docker/volumes/sonarr/config`
+5. `/tank/public`
+
+You can create these directories using the following commands:
+
+```bash
+sudo mkdir -p /tank/docker/volumes/{jackett,overseerr,radarr,sonarr}/config
+sudo mkdir -p /tank/public
+```
+
+Ensure that the user running Docker has the necessary permissions to access these directories.
